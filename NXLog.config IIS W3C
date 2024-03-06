@@ -1,0 +1,47 @@
+define ROOT C:\Program Files\nxlog
+
+Moduledir %ROOT%\modules
+CacheDir %ROOT%\data
+Pidfile %ROOT%\data\nxlog.pid
+SpoolDir %ROOT%\data
+LogFile %ROOT%\data\nxlog.log
+
+<Input iis>
+    Module   im_file
+    File     "C:\\inetpub\\logs\\LogFiles\\*\\u_ex*.log"
+    Recursive TRUE
+    SavePos  TRUE
+
+    Exec $Hostname = hostname_fqdn(); \
+         $raw_event = $raw_event + " Hostname:" + $Hostname; \
+         if $raw_event =~ /^#/ { drop(); } \
+         else { if $raw_event =~ /(\d+)\s+\d+$/ { $bytes_sent = $1; } }
+</Input>
+
+<Processor proc>
+    Module pm_null
+</Processor>
+
+<Output out>
+    Module om_tcp
+    Host 127.0.0.1 #logstash Host IP  
+    Port 7200
+    OutputType LineBased
+</Output>
+# File output for debugging
+# <Output out_file>
+    # Module om_file
+    # File 'C:\\temp\\file1.log'
+# </Output>
+
+<Route iis-to-out>
+    Path iis => out
+</Route>
+
+# <Route iis-to-file>
+    # Path iis => proc => out_file
+# </Route>
+
+<Extension _exec>
+   Module  xm_exec
+</Extension>
