@@ -1,3 +1,4 @@
+#NX Log Ce Config for IIS W3C logs export
 define ROOT C:\Program Files\nxlog
 
 Moduledir %ROOT%\modules
