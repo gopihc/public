@@ -1,0 +1,44 @@
+input {
+  tcp {
+    type => "iis"  #logtype
+    port => 7200   #Tcp Port
+  }
+}
+## Filter for IISW3C Multiple IIS Versions
+filter {
+  grok {
+    match => { "message" => [
+      "%{TIMESTAMP_ISO8601:log_timestamp} %{IPORHOST:site} %{WORD:method} %{URIPATH:page} %{NOTSPACE:querystring} %{NUMBER:port} %{NOTSPACE:username} %{IPORHOST:clienthost} %{NOTSPACE:useragent} %{NOTSPACE:referer} %{NUMBER:response} %{NUMBER:subresponse} %{NUMBER:scstatus} %{NUMBER:timetaken:int} %{IPORHOST:hostname}",
+      "%{TIMESTAMP_ISO8601:log_timestamp} %{WORD:iisSite} %{NOTSPACE:computername} %{IPORHOST:site} %{WORD:method} %{URIPATH:page} %{NOTSPACE:querystring} %{NUMBER:port} %{NOTSPACE:username} %{IPORHOST:clienthost} %{NOTSPACE:protocol} %{NOTSPACE:useragent} %{NOTSPACE:referer} %{IPORHOST:cshost} %{NUMBER:response} %{NUMBER:subresponse} %{NUMBER:scstatus} %{NUMBER:bytessent:int} %{NUMBER:bytesrecvd:int} %{NUMBER:timetaken:int} %{IPORHOST:hostname}",
+      "%{TIMESTAMP_ISO8601:log_timestamp} %{WORD:S-SiteName} %{NOTSPACE:S-ComputerName} %{IPORHOST:S-IP} %{WORD:CS-Method} %{URIPATH:CS-URI-Stem} %{NOTSPACE:CS-URI-Query} %{NUMBER:S-Port} %{NOTSPACE:CS-Username} %{IPORHOST:C-IP} %{NOTSPACE:CS-Version} %{NOTSPACE:CS-UserAgent} %{NOTSPACE:CS-Cookie} %{NOTSPACE:CS-Referer} %{NOTSPACE:CS-Host} %{NUMBER:SC-Status} %{NUMBER:SC-SubStatus} %{NUMBER:SC-Win32-Status} %{NUMBER:SC-Bytes} %{NUMBER:CS-Bytes} %{NUMBER:Time-Taken} %{IPORHOST:hostname}"
+    ] }
+  }
+ date {
+    match => [ "log_timestamp", "ISO8601", "YYYY-MM-dd HH:mm:ss" ]
+    target => "@timestamp"
+  }
+  
+  if [clienthost] =~ /^$/ {
+    mutate {
+      add_field => { "clienthost" => " " } 
+    }
+  }
+    
+  
+ geoip {
+    source => "clienthost"
+    target => "geoip"
+  }
+ 
+}
+
+output {
+  #stdout { codec => rubydebug }
+  
+  elasticsearch {
+    hosts => ["localhost:9200"]
+    index => "iis_logs"
+    user => ""  #elastic username
+    password => "" #elastic password
+  }
+}
